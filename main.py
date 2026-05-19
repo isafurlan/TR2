@@ -1,5 +1,6 @@
 import requests # requisição HTTP -> CONVERSAR C/ O SERVIDOR
 import json
+import time
 
 manifestUrl = "http://137.131.178.229:8080/manifest"
 
@@ -48,6 +49,16 @@ def select_quality(representations, avg, safety_factor=0.85):
             break
         selected = rep
     return selected
+
+def download_segment(url):
+    start = time.time()
+    response = requests.get(url)
+    response.raise_for_status()
+    end = time.time()
+    size_in_bytes = len(response.content)
+    time_seconds = end - start
+    throughput_kbps = (size_in_bytes * 8) / time_seconds / 1000
+    return throughput_kbps
 
 def main():
     manifest = baixar_manifest()
