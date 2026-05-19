@@ -3,6 +3,8 @@ import json
 
 manifestUrl = "http://137.131.178.229:8080/manifest"
 
+throughput_history = []
+
 def baixar_manifest():
     req = requests.get(manifestUrl) # Download
     req.raise_for_status() # Verifica erro
@@ -27,6 +29,25 @@ def parser_manifest(manifest):
         "servers": servers,
         "representations": representations
     }
+
+def add_measurement(throughput_kbps, window_size=5):
+    throughput_history.append(throughput_kbps)
+    if len(throughput_history) > window_size:
+        throughput_history.pop(0)
+
+def average_throughput():
+    if not throughput_history:
+        return 0
+    return sum(throughput_history) / len(throughput_history)
+
+def select_quality(representations, avg, safety_factor=0.85):
+    safe = avg * safety_factor
+    selected = representations[0]
+    for rep in representations:
+        if rep["bitrate_kbps"] > safe:
+            break
+        selected = rep
+    return selected
 
 def main():
     manifest = baixar_manifest()
