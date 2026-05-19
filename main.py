@@ -64,6 +64,17 @@ def main():
     manifest = baixar_manifest()
     parsed = parser_manifest(manifest)
     print(json.dumps(parsed))
+    server_url = parsed["servers"][0]["url"]
+    representations = parsed["representations"]
+    for i in range(10):
+        print(f"\nsegment {i + 1}:")
+        quality = select_quality(representations, average)
+        print(f"    selected quality:          {quality["quality"]}, {quality["bitrate_kbps"]}kbps")
+        throughput = download_segment(server_url + quality["url_path"])
+        print(f"    measured throughput:       {throughput:.2f}kbps")
+        add_measurement(throughput)
+        average = average_throughput()
+        print(f"    current average bandwidth: {average:.2f}kbps")
 
 if __name__ == '__main__':
     main()
