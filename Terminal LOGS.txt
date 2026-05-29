@@ -1,0 +1,142 @@
+(TR02) PS C:\Users\luizs\OneDrive\Desktop\Trabalho de TR02\Primeira entrega> py main.py
+{
+  "version": "2.0",
+  "segment_duration": 2,
+  "servers": [
+    {
+      "id": "A",
+      "url": "http://137.131.178.229:8080",
+      "priority": 1,
+      "bandwidth_kbps": 2000.0,
+      "jitter_ms": 0
+    },
+    {
+      "id": "srv-B",
+      "url": "http://137.131.178.229:8081",
+      "priority": 2,
+      "bandwidth_kbps": null,
+      "jitter_ms": null
+    }
+  ],
+  "representations": [
+    {
+      "quality": "240p",
+      "bitrate_kbps": 200,
+      "segment_bytes": 25000,
+      "url_path": "/segment/240p"
+    },
+    {
+      "quality": "360p",
+      "bitrate_kbps": 400,
+      "segment_bytes": 50000,
+      "url_path": "/segment/360p"
+    },
+    {
+      "quality": "480p",
+      "bitrate_kbps": 700,
+      "segment_bytes": 87500,
+      "url_path": "/segment/480p"
+    },
+    {
+      "quality": "720p",
+      "bitrate_kbps": 1500,
+      "segment_bytes": 187500,
+      "url_path": "/segment/720p"
+    },
+    {
+      "quality": "1080p",
+      "bitrate_kbps": 3000,
+      "segment_bytes": 375000,
+      "url_path": "/segment/1080p"
+    }
+  ]
+}
+Iniciando download de 10 segmentos...
+
+--- Segmento 1 ---
+Qualidade: 240p (200kbps)
+Buffer: 0.00s | Play: False
+⚠️ REBUFFERING! Esperando...
+Vazão: 1167.02kbps | Tempo: 0.17s
+Jitter Net: 0.00ms | EWMA: 0.00ms
+Média: 1167.02kbps
+
+--- Segmento 2 ---
+Qualidade: 480p (700kbps)
+Buffer: 1.00s | Play: True
+Vazão: 1140.48kbps | Tempo: 0.61s
+Jitter Net: 383.57ms | EWMA: 76.71ms
+Média: 1153.75kbps
+
+--- Segmento 3 ---
+Qualidade: 480p (700kbps)
+Buffer: 2.38s | Play: True
+Vazão: 1230.90kbps | Tempo: 0.57s
+Jitter Net: 1431.31ms | EWMA: 347.63ms
+Média: 1179.47kbps
+
+--- Segmento 4 ---
+Qualidade: 480p (700kbps)
+Buffer: 3.81s | Play: True
+Vazão: 1253.08kbps | Tempo: 0.56s
+Jitter Net: 1441.38ms | EWMA: 566.38ms
+Média: 1197.87kbps
+
+--- Segmento 5 ---
+Qualidade: 480p (700kbps)
+Buffer: 5.26s | Play: True
+Vazão: 1243.95kbps | Tempo: 0.56s
+Jitter Net: 1437.28ms | EWMA: 740.56ms
+Média: 1207.09kbps
+
+--- Segmento 6 ---
+Qualidade: 480p (700kbps)
+Buffer: 6.69s | Play: True
+Vazão: 1170.84kbps | Tempo: 0.60s
+Jitter Net: 1402.14ms | EWMA: 872.88ms
+Média: 1207.85kbps
+
+--- Segmento 7 ---
+Qualidade: 480p (700kbps)
+Buffer: 8.10s | Play: True
+Vazão: 1287.70kbps | Tempo: 0.54s
+Jitter Net: 1456.40ms | EWMA: 989.58ms
+Média: 1237.30kbps
+
+--- Segmento 8 ---
+Qualidade: 480p (700kbps)
+Buffer: 9.55s | Play: True
+Vazão: 1231.63kbps | Tempo: 0.57s
+Jitter Net: 1431.65ms | EWMA: 1077.99ms
+Média: 1237.44kbps
+
+--- Segmento 9 ---
+Qualidade: 480p (700kbps)
+Buffer: 10.98s | Play: True
+Vazão: 1175.70kbps | Tempo: 0.60s
+Jitter Net: 1403.65ms | EWMA: 1143.12ms
+Média: 1221.97kbps
+
+--- Segmento 10 ---
+Qualidade: 480p (700kbps)
+Buffer: 12.39s | Play: True
+Vazão: 1211.21kbps | Tempo: 0.58s
+Jitter Net: 1422.06ms | EWMA: 1198.91ms
+Média: 1215.42kbps
+
+=== Finalizando ===
+Métricas salvas em: metrics_20260520_210956.csv
+
+=== Gerando Gráficos ===
+Gráfico de vazão salvo em: plots\throughput_over_time.png
+Gráfico de qualidade salvo em: plots\quality_over_time.png
+Gráfico de buffer salvo em: plots\buffer_level_over_time.png
+Gráfico combinado salvo em: plots\combined_metrics.png
+Todos os gráficos foram gerados!
+
+
+📊 Resumo Final:
+Segmentos: 10
+Vazão média: 1211.25 kbps
+Rebufferings: 1
+Stall total: 1.00s
