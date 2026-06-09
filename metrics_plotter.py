@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import glob
 import os
 
 class MetricsPlotter:
@@ -9,6 +10,10 @@ class MetricsPlotter:
         # Cria pasta para salvar os gráficos se não existir
         if not os.path.exists(self.plots_dir):
             os.makedirs(self.plots_dir)
+
+    def clear_old_plots(self):
+        for plot_file in glob.glob(os.path.join(self.plots_dir, "*.png")):
+            os.remove(plot_file)
     
     def plot_throughput_over_time(self, save=True, show=True):
         if not self.metrics_logger.metrics_data:
@@ -33,7 +38,7 @@ class MetricsPlotter:
         plt.legend(loc='best')
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
-        
+
         if save:
             filename = os.path.join(self.plots_dir, 'throughput_over_time.png')
             plt.savefig(filename, dpi=300)
@@ -156,6 +161,7 @@ class MetricsPlotter:
     
     def generate_all_plots(self):
         print("\n=== Gerando Gráficos ===")
+        self.clear_old_plots()
         self.plot_throughput_over_time(save=True, show=False)
         self.plot_quality_over_time(save=True, show=False)
         self.plot_buffer_level_over_time(save=True, show=False)

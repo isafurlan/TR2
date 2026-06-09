@@ -1,6 +1,7 @@
 import requests
 import json
 import time
+from urllib.parse import urljoin
 
 from buffer_manager import BufferManager
 from metrics_logger import MetricsLogger
@@ -45,17 +46,41 @@ def select_quality(representations, avg, safety_factor=0.85):
         selected = rep
     return selected
 
+def build_segment_url(server_url, representation, segment_index):
+    if representation.get("segments"):
+        segments = representation["segments"]
+        if segment_index > len(segments):
+            raise IndexError(f"Segmento {segment_index} não existe no manifest.")
+        path = segments[segment_index - 1]
+    else:
+        path = representation["url_path"]
+        format_values = {
+            "segment": segment_index,
+            "segment_index": segment_index,
+            "segment_number": segment_index,
+            "index": segment_index,
+            "number": segment_index,
+            "quality": representation.get("quality"),
+            "bitrate": representation.get("bitrate_kbps"),
+            "bitrate_kbps": representation.get("bitrate_kbps"),
+        }
+        if "{" in path and "}" in path:
+            path = path.format(segment_index, **format_values)
+
+    return urljoin(server_url.rstrip("/") + "/", path.lstrip("/"))
+
 def download_segment(url):
-    start = time.time()
+    start = time.perf_counter()
     response = requests.get(url)
     response.raise_for_status()
-    end = time.time()
+    end = time.perf_counter()
     size_in_bytes = len(response.content)
     time_seconds = end - start if (end - start) > 0 else 0.001
     throughput_kbps = (size_in_bytes * 8) / time_seconds / 1000
     return throughput_kbps, time_seconds
 
 def main():
+    throughput_history.clear()
     manifest = baixar_manifest()
     parsed = parser_manifest(manifest)
     
@@ -70,7 +95,7 @@ def main():
     print(json.dumps(parsed, indent=2))
     print(f"Iniciando download de 10 segmentos...\n")
 
-    last_segment_time = time.time()
+    last_segment_time = time.perf_counter()
     jitter_ewma = 0.0
     alpha_ewma = 0.2
     failover_total = 0
@@ -78,20 +103,23 @@ def main():
 
     for i in range(10):
         print(f"--- Segmento {i + 1} ---")
-        
+
         buffer_manager.update_decay()
+        can_play = buffer_manager.can_play()
         quality = select_quality(representations, average_throughput())
-        can_play = buffer_manager.check_can_play()
-        
+        buffer_before_download = buffer_manager.get_buffer_level()
+
         print(f"Qualidade: {quality['quality']} ({quality['bitrate_kbps']}kbps)")
-        print(f"Buffer: {buffer_manager.get_buffer_level():.2f}s | Play: {can_play}")
-        
-        url_segmento = server_url + quality["url_path"]
+        print(f"Buffer: {buffer_before_download:.2f}s | Play: {can_play}")
+
+        url_segmento = build_segment_url(server_url, quality, i + 1)
         throughput, download_time = download_segment(url_segmento)
+        stall_duration = buffer_manager.update_decay()
+        is_rebuffering = stall_duration > 0
         buffer_manager.add_segment()
-        
+
         # Cálculo Jitter Network
-        current_time = time.time()
+        current_time = time.perf_counter()
         if i == 0:
             jitter_network = 0.0
         else:
@@ -104,16 +132,10 @@ def main():
             jitter_ewma = jitter_network
         else:
             jitter_ewma = (alpha_ewma * jitter_network) + ((1 - alpha_ewma) * jitter_ewma)
-            
-        # Verifica Rebuffering / Stall
-        is_rebuffering = buffer_manager.is_rebuffering
-        stall_duration = 0.0
+
         if is_rebuffering:
-            print("⚠️ REBUFFERING! Esperando...")
-            time.sleep(1.0)
-            stall_duration = 1.0
-            buffer_manager.record_rebuffering_end()
-            
+            print(f"REBUFFERING detectado: {stall_duration:.2f}s")
+
         # Rastreamento de Failover
         if server_id != last_server_id:
             failover_total += 1

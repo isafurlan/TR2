@@ -1,4 +1,5 @@
 import csv
+import os
 from datetime import datetime
 
 class MetricsLogger:
@@ -7,6 +8,7 @@ class MetricsLogger:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"metrics_{timestamp}.csv"
         self.filename = filename
+        self.csvs_dir = "csvs"
         self.metrics_data = []
 
     def log_segment(self, segment_index, throughput_kbps, download_time_s,
@@ -37,6 +39,9 @@ class MetricsLogger:
             print("Nenhuma métrica para salvar.")
             return
 
+        os.makedirs(self.csvs_dir, exist_ok=True)
+        filepath = os.path.join(self.csvs_dir, self.filename)
+
         fieldnames = [
             'segment', 'timestamp', 'server_id', 'quality', 'bitrate_kbps',
             'vazao_kbps', 'download_time_s', 
@@ -45,12 +50,12 @@ class MetricsLogger:
             'stall_duration_s', 'failover_total'
         ]
 
-        with open(self.filename, 'w', newline='', encoding='utf-8') as csvfile:
+        with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(self.metrics_data)
         
-        print(f"Métricas salvas em: {self.filename}")
+        print(f"Métricas salvas em: {filepath}")
 
     def get_summary_stats(self):
         if not self.metrics_data:
