@@ -114,15 +114,90 @@
 
 \section{Análise de Deficiências}
 
-% Escreva aqui
+\subsection{Evidências Coletadas}
+
+A análise foi feita a partir dos arquivos CSV gerados pela Política 1. O arquivo \\ \texttt{metrics\_20260608\_220922.csv}\\
+foi usado como principal trace de referência, pois representa um cenário sem rebuffering, mas com baixa utilização da vazão disponível. Nesse CSV, a vazão média medida foi de 696,54 kbps, enquanto o bitrate médio selecionado foi de apenas 340,00 kbps. Assim, o baseline utilizou aproximadamente 55,68\% da vazão disponível.
+
+Alguns segmentos mostram essa deficiência de forma mais clara. No segmento 2, a vazão medida foi de 648,36 kbps, mas a qualidade selecionada permaneceu em 240p, com bitrate de 200 kbps, correspondendo a apenas 30,8\% da vazão medida. No segmento 3, a vazão foi de 722,93 kbps e o bitrate continuou em 200 kbps, apenas 27,7\% da vazão. Mesmo depois da subida para 360p, o cliente continuou conservador: no segmento 4, a vazão medida foi de 1004,17 kbps, mas o bitrate escolhido foi 400 kbps, isto é, 39,8\% da vazão.
+
+\subsection{Oscilação de Qualidade}
+
+Os dados não mostram uma oscilação severa de qualidade. No trace principal, a Política 1 realizou apenas uma troca de qualidade: começou em 240p e subiu para 360p. Portanto, a oscilação de qualidade não foi considerada a principal deficiência do baseline.
+
+\subsection{Rebuffering}
+
+No trace principal, não houve eventos de rebuffering. O CSV registra 0 eventos de rebuffering e 0,0 segundo de stall total. Isso indica que a Política 1 foi conservadora o suficiente para evitar interrupções de reprodução nesse cenário.
+
+\subsection{Subutilização de Banda e Adaptação Conservadora}
+
+A deficiência concreta identificada foi a subutilização da banda disponível. A Política 1 usa um fator de segurança fixo e ignora o nível do buffer no momento da decisão. Com isso, mesmo quando o buffer já estava suficiente para reprodução contínua, a política manteve qualidades baixas por vários segmentos. O resultado foi uma reprodução estável, mas com qualidade inferior ao que a rede e o buffer permitiam.
+
 
 \section{Implementação da Política 2}
+\subsection{Escolha da Política 2}
 
-% Escreva aqui
+A Política 2 implementada foi uma política Buffer-Based ABR. Diferentemente da Política 1, que decide a qualidade com base diretamente na vazão média recente, a Política 2 usa o nível do buffer como principal sinal de decisão. A motivação é que um buffer alto indica maior margem para escolher uma qualidade superior sem aumentar imediatamente o risco de rebuffering.
+
+A regra usada foi:
+
+\begin{itemize}
+    \item se o buffer for menor que 4 segundos, selecionar a menor qualidade;
+    \item se o buffer estiver entre 4 e 8 segundos, selecionar a qualidade intermediária;
+    \item se o buffer for maior ou igual a 8 segundos, selecionar a maior qualidade disponível.
+\end{itemize}
+
+No código, essa política foi implementada no script \texttt{policy\_comparison.py}. O mesmo script também executa a Política 1 sobre o mesmo trace de vazão, permitindo uma comparação controlada entre as duas políticas. Para manter a justiça da comparação, ambas as políticas foram avaliadas sobre a mesma sequência de vazões do CSV baseline \\ \texttt{metrics\_20260608\_220922.csv}.
+
+\subsection{Comparação entre Políticas}
+
+Para comparar as políticas sob o mesmo cenário de banda, foi usado um replay controlado do trace de vazão medido pela Política 1. A duração de segmento usada na simulação foi de 2 segundos, estimada a partir do nível inicial de buffer registrado no CSV.
+
+\begin{table}[H]
+\centering
+\caption{Comparação entre Política 1 e Política 2 no mesmo trace de vazão}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Métrica} & \textbf{Política 1} & \textbf{Política 2} \\
+\hline
+Vazão média medida & 696,54 kbps & 696,54 kbps \\
+\hline
+Bitrate médio selecionado & 340,00 kbps & 430,00 kbps \\
+\hline
+Utilização média da vazão & 55,68\% & 68,16\% \\
+\hline
+Trocas de qualidade & 1 & 2 \\
+\hline
+Eventos de rebuffering & 0 & 0 \\
+\hline
+Stall total & 0,0 s & 0,0 s \\
+\hline
+Buffer final & 11,52 s & 9,02 s \\
+\hline
+\end{tabular}
+\end{table}
+
+O resultado mostra que a Política 2 aumentou o bitrate médio de 340,00 kbps para 430,00 kbps, elevando a utilização média da vazão de 55,68\% para 68,16\%. Esse ganho foi obtido sem introduzir rebuffering no trace avaliado. O buffer final foi menor na Política 2, 9,02 s contra 11,52 s, o que é esperado, pois a política passou a consumir mais banda para entregar segmentos de maior qualidade.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{plots/politica2_throughput_bitrate_overlay.png}
+    \caption{Vazão medida e bitrate escolhido pelas duas políticas}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{plots/politica2_quality_comparison.png}
+    \caption{Comparação da qualidade selecionada ao longo dos segmentos}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{plots/politica2_buffer_comparison.png}
+    \caption{Comparação do nível de buffer ao longo dos segmentos}
+\end{figure}
 
 \section{Failover}
-
-% Escreva aqui
 
 % -------------------------------------------------
 % CONCLUSÃO
@@ -130,7 +205,11 @@
 
 \section{Conclusão}
 
-% Escreva aqui
+A análise dos CSVs mostrou que o baseline Rate-Based puro evitou rebuffering no trace principal, mas apresentou comportamento conservador. A principal deficiência observada foi a baixa utilização da vazão disponível: a Política 1 usou em média 55,68\% da vazão medida.
+
+A Política 2 Buffer-Based endereçou essa deficiência ao usar o nível do buffer como sinal para permitir escolhas de maior qualidade quando havia margem de segurança. No mesmo cenário de banda, a Política 2 aumentou o bitrate médio de 340,00 kbps para 430,00 kbps e elevou a utilização média da vazão para 68,16\%, mantendo 0 eventos de rebuffering e 0,0 segundo de stall total.
+
+Assim, a Política 2 melhorou a qualidade média da reprodução sem comprometer a continuidade do vídeo no trace avaliado.
 
 % -------------------------------------------------
 % REFERÊNCIAS
