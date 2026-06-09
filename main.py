@@ -83,15 +83,15 @@ def main():
     throughput_history.clear()
     manifest = baixar_manifest()
     parsed = parser_manifest(manifest)
-    
+
     buffer_manager = BufferManager(parsed['segment_duration'])
     metrics_logger = MetricsLogger()
-    
+
     server_url = parsed["servers"][0]["url"]
     server_id = parsed["servers"][0].get("id", "A")
     representations = parsed["representations"]
     segment_duration = parsed['segment_duration']
-    
+
     print(json.dumps(parsed, indent=2))
     print(f"Iniciando download de 10 segmentos...\n")
 
@@ -126,7 +126,7 @@ def main():
             inter_arrival = current_time - last_segment_time
             jitter_network = abs(inter_arrival - segment_duration) * 1000
         last_segment_time = current_time
-        
+
         # Cálculo Jitter EWMA
         if i == 0:
             jitter_ewma = jitter_network
@@ -140,7 +140,7 @@ def main():
         if server_id != last_server_id:
             failover_total += 1
             last_server_id = server_id
-            
+
         # Registro no Logger
         metrics_logger.log_segment(
             segment_index=i + 1,
@@ -157,7 +157,7 @@ def main():
             server_id=server_id,
             failover_total=failover_total
         )
-        
+
         add_measurement(throughput)
         print(f"Vazão: {throughput:.2f}kbps | Tempo: {download_time:.2f}s")
         print(f"Jitter Net: {jitter_network:.2f}ms | EWMA: {jitter_ewma:.2f}ms")
@@ -165,10 +165,10 @@ def main():
 
     print("=== Finalizando ===")
     metrics_logger.save_to_csv()
-    
+
     plotter = MetricsPlotter(metrics_logger)
     plotter.generate_all_plots()
-    
+
     stats = metrics_logger.get_summary_stats()
     print("\n📊 Resumo Final:")
     print(f"Segmentos: {stats['total_segments']}")

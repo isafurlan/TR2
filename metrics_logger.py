@@ -15,7 +15,7 @@ class MetricsLogger:
                     jitter_network_ms, jitter_ewma_ms, buffer_level,
                     quality, bitrate, buffer_can_play, is_rebuffering,
                     stall_duration, server_id, failover_total):
-        
+
         metric = {
             'segment': segment_index,
             'timestamp': datetime.now().isoformat(),
@@ -44,9 +44,9 @@ class MetricsLogger:
 
         fieldnames = [
             'segment', 'timestamp', 'server_id', 'quality', 'bitrate_kbps',
-            'vazao_kbps', 'download_time_s', 
+            'vazao_kbps', 'download_time_s',
             'variacao de atraso (jitter)_network_ms', 'variacao de atraso (jitter)_ewma_ms',
-            'buffer_level_s', 'buffer_can_play', 'rebuffer_event', 
+            'buffer_level_s', 'buffer_can_play', 'rebuffer_event',
             'stall_duration_s', 'failover_total'
         ]
 
@@ -54,7 +54,7 @@ class MetricsLogger:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(self.metrics_data)
-        
+
         print(f"Métricas salvas em: {filepath}")
 
     def get_summary_stats(self):
