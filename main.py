@@ -183,10 +183,15 @@ def main():
             quality=quality['quality'],
             bitrate=quality['bitrate_kbps'],
             buffer_can_play=can_play,
-            is_rebuffering=is_rebuffering,
+            rebuffered=rebuffered,
             stall_duration=stall_duration,
             server_id=server_id,
-            failover_total=failover_total
+            failover_total=failover_total,
+            failover_occurred=failover_occurred,
+            failover_time=failover_time,
+            buffer_absorbed_failover=buffer_absorbed_failover,
+            server_before=server_before,
+            server_after=server_after
         )
 
         add_measurement(throughput)
@@ -206,6 +211,8 @@ def main():
     print(f"Vazão média: {stats['avg_throughput_kbps']:.2f} kbps")
     print(f"Rebufferings: {stats['rebuffering_events']}")
     print(f"Stall total: {stats['total_stall_time_s']:.2f}s")
+    print(f"Failovers': {stats['total_failovers']}"),
+    print(f"Tempo médio de failover: {stats['avg_failover_time']:.2f}")
 
 if __name__ == '__main__':
     main()

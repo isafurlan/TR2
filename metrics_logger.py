@@ -13,8 +13,9 @@ class MetricsLogger:
 
     def log_segment(self, segment_index, throughput_kbps, download_time_s,
                     jitter_network_ms, jitter_ewma_ms, buffer_level,
-                    quality, bitrate, buffer_can_play, is_rebuffering,
-                    stall_duration, server_id, failover_total):
+                    quality, bitrate, buffer_can_play, rebuffered,
+                    stall_duration, server_id, failover_total, failover_occurred,
+                    failover_time, buffer_absorbed_failover, server_before, server_after):
 
         metric = {
             'segment': segment_index,
@@ -28,9 +29,14 @@ class MetricsLogger:
             'variacao de atraso (jitter)_ewma_ms': round(jitter_ewma_ms, 2),
             'buffer_level_s': round(buffer_level, 2),
             'buffer_can_play': 1 if buffer_can_play else 0,
-            'rebuffer_event': 1 if is_rebuffering else 0,
+            'rebuffer_event': 1 if rebuffered else 0,
             'stall_duration_s': round(stall_duration, 3),
-            'failover_total': failover_total
+            'failover_total': failover_total,
+            'failover_occurred': 1 if failover_occurred else 0,
+            'failover_time': failover_time,
+            'buffer_absorbed_failover': 1 if buffer_absorbed_failover else 0,
+            'server_before': server_before,
+            'server_after': server_after
         }
         self.metrics_data.append(metric)
 
@@ -47,7 +53,8 @@ class MetricsLogger:
             'vazao_kbps', 'download_time_s',
             'variacao de atraso (jitter)_network_ms', 'variacao de atraso (jitter)_ewma_ms',
             'buffer_level_s', 'buffer_can_play', 'rebuffer_event',
-            'stall_duration_s', 'failover_total'
+            'stall_duration_s', 'failover_total', 'failover_occurred', 'failover_time',
+            'buffer_absorbed_failover', 'server_before', 'server_after'
         ]
 
         with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
@@ -65,6 +72,8 @@ class MetricsLogger:
         buffer_levels = [m['buffer_level_s'] for m in self.metrics_data]
         rebufferings = sum(m['rebuffer_event'] for m in self.metrics_data)
         stalls = sum(m['stall_duration_s'] for m in self.metrics_data)
+        failovers = sum(m['failover_occurred'] for m in self.metrics_data)
+        avg_failover_time = sum(m['failover_time'] for m in self.metrics_data if m['failover_occurred']) / failovers if failovers > 0 else 0
 
         return {
             'total_segments': len(self.metrics_data),
@@ -73,5 +82,7 @@ class MetricsLogger:
             'max_throughput_kbps': max(vazoes),
             'avg_buffer_level_s': sum(buffer_levels) / len(buffer_levels),
             'rebuffering_events': rebufferings,
-            'total_stall_time_s': stalls
+            'total_stall_time_s': stalls,
+            'total_failovers': failovers,
+            'avg_failover_time': avg_failover_time
         }
