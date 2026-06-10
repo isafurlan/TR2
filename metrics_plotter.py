@@ -121,6 +121,33 @@ class MetricsPlotter:
 
         plt.close()
 
+    def plot_jitter_over_time(self, save=True, show=True):
+        if not self.metrics_logger.metrics_data:
+            return
+
+        segments = [m['segment'] for m in self.metrics_logger.metrics_data]
+        jitter_network = [m['variacao de atraso (jitter)_network_ms'] for m in self.metrics_logger.metrics_data]
+        jitter_ewma = [m['variacao de atraso (jitter)_ewma_ms'] for m in self.metrics_logger.metrics_data]
+
+        plt.figure(figsize=(10, 6))
+        plt.plot(segments, jitter_network, marker='o', label='Jitter Network')
+        plt.plot(segments, jitter_ewma, marker='s', label='Jitter EWMA')
+        plt.xlabel('Segmento')
+        plt.ylabel('Jitter (ms)')
+        plt.title('Jitter ao Longo dos Segmentos')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+
+        if save:
+            filename = os.path.join(self.plots_dir, 'jitter_over_time.png')
+            plt.savefig(filename, dpi=300)
+
+        if show:
+            plt.show()
+
+        plt.close()
+
     def plot_stall_metrics(self, save=True, show=True):
         if not self.metrics_logger.metrics_data:
             return
@@ -206,6 +233,7 @@ class MetricsPlotter:
         self.plot_throughput_over_time(save=True, show=False)
         self.plot_quality_over_time(save=True, show=False)
         self.plot_buffer_level_over_time(save=True, show=False)
+        self.plot_jitter_over_time(save=True, show=False)
         self.plot_stall_metrics(save=True, show=False)
         self.plot_combined_metrics(save=True, show=False)
         print("Todos os gráficos foram gerados!\n")
