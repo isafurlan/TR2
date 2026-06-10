@@ -6,6 +6,7 @@ from urllib.parse import urljoin
 from buffer_manager import BufferManager
 from metrics_logger import MetricsLogger
 from metrics_plotter import MetricsPlotter
+from server_manager import ServerManager
 
 manifestUrl = "http://137.131.178.229:8080/manifest"
 throughput_history = []
@@ -71,13 +72,13 @@ def build_segment_url(server_url, representation, segment_index):
 
 def download_segment(url):
     start = time.perf_counter()
-    response = requests.get(url)
+    response = requests.get(url, timeout=5)
     response.raise_for_status()
     end = time.perf_counter()
-    size_in_bytes = len(response.content)
-    time_seconds = end - start if (end - start) > 0 else 0.001
-    throughput_kbps = (size_in_bytes * 8) / time_seconds / 1000
-    return throughput_kbps, time_seconds
+    size = len(response.content)
+    duration = max(end - start, 0.001)
+    throughput = (size * 8) / duration / 1000
+    return throughput, duration
 
 def main():
     throughput_history.clear()
@@ -87,8 +88,11 @@ def main():
     buffer_manager = BufferManager(parsed['segment_duration'])
     metrics_logger = MetricsLogger()
 
-    server_url = parsed["servers"][0]["url"]
-    server_id = parsed["servers"][0].get("id", "A")
+    server_manager = ServerManager(parsed["servers"])
+    current_server = server_manager.current_server()
+    server_url = current_server["url"]
+    server_id = current_server["id"]
+
     representations = parsed["representations"]
     segment_duration = parsed['segment_duration']
 
@@ -99,12 +103,16 @@ def main():
     jitter_ewma = 0.0
     alpha_ewma = 0.2
     failover_total = 0
-    last_server_id = server_id
 
     for i in range(10):
+        failover_occurred = False
+        failover_time = 0.0
+        buffer_absorbed_failover = True
+        server_before = server_id
+        server_after = server_id
+
         print(f"--- Segmento {i + 1} ---")
 
-        buffer_manager.update_decay()
         can_play = buffer_manager.can_play()
         quality = select_quality(representations, average_throughput())
         buffer_before_download = buffer_manager.get_buffer_level()
@@ -113,9 +121,35 @@ def main():
         print(f"Buffer: {buffer_before_download:.2f}s | Play: {can_play}")
 
         url_segmento = build_segment_url(server_url, quality, i + 1)
-        throughput, download_time = download_segment(url_segmento)
+        failover_start = None
+
+        try:
+            throughput, download_time = download_segment(url_segmento)
+
+        except requests.RequestException:
+            failover_occurred = True
+            failover_start = time.perf_counter()
+            new_server = server_manager.failover()
+
+            if new_server is None:
+                raise Exception("Nenhum servidor disponível")
+
+            failover_total += 1
+            server_before = server_id
+            server_url = new_server["url"]
+            server_id = new_server["id"]
+            server_after = server_id
+
+            print(f"FAILOVER -> servidor {server_id}")
+
+            url_segmento = build_segment_url(server_url, quality, i + 1)
+            throughput, download_time = download_segment(url_segmento)
+
+            failover_time = time.perf_counter() - failover_start
+            buffer_manager.update_decay()
+
         stall_duration = buffer_manager.update_decay()
-        is_rebuffering = stall_duration > 0
+        rebuffered = stall_duration > 0
         buffer_manager.add_segment()
 
         # Cálculo Jitter Network
@@ -133,13 +167,10 @@ def main():
         else:
             jitter_ewma = (alpha_ewma * jitter_network) + ((1 - alpha_ewma) * jitter_ewma)
 
-        if is_rebuffering:
+        if rebuffered:
+            if failover_occurred:
+                buffer_absorbed_failover = False
             print(f"REBUFFERING detectado: {stall_duration:.2f}s")
-
-        # Rastreamento de Failover
-        if server_id != last_server_id:
-            failover_total += 1
-            last_server_id = server_id
 
         # Registro no Logger
         metrics_logger.log_segment(
