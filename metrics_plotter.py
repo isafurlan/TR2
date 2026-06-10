@@ -21,10 +21,14 @@ class MetricsPlotter:
             return
 
         segments = [m['segment'] for m in self.metrics_logger.metrics_data]
-        # CORREÇÃO: Usando 'vazao_kbps' que agora é o nome correto no Logger
         throughputs = [m['vazao_kbps'] for m in self.metrics_logger.metrics_data]
+        failovers = [m['segment'] for m in self.metrics_logger.metrics_data if m['failover_occurred']]
 
         plt.figure(figsize=(10, 6))
+
+        for seg in failovers:
+            plt.axvline(seg, linestyle=':', alpha=0.5)
+
         plt.plot(segments, throughputs, marker='o', linestyle='-',
                  linewidth=2, markersize=6, color='#2E86AB')
 
@@ -117,6 +121,38 @@ class MetricsPlotter:
 
         plt.close()
 
+    def plot_stall_metrics(self, save=True, show=True):
+        if not self.metrics_logger.metrics_data:
+            return
+
+        segments = [m['segment'] for m in self.metrics_logger.metrics_data]
+        stalls = [m['stall_duration_s'] for m in self.metrics_logger.metrics_data]
+        cumulative = []
+        total = 0.0
+
+        for stall in stalls:
+            total += stall
+            cumulative.append(total)
+
+        plt.figure(figsize=(10, 6))
+        plt.bar(segments, stalls, label='Stall por Segmento')
+        plt.plot(segments, cumulative, marker='o', linewidth=2, label='Stall Acumulado')
+        plt.xlabel('Segmento')
+        plt.ylabel('Tempo (s)')
+        plt.title('Rebuffering / Stall')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+
+        if save:
+            filename = os.path.join(self.plots_dir, 'stall_metrics.png')
+            plt.savefig(filename, dpi=300)
+
+        if show:
+            plt.show()
+
+        plt.close()
+
     def plot_combined_metrics(self, save=True, show=True):
         if not self.metrics_logger.metrics_data:
             print("Sem dados para plotar.")
@@ -126,10 +162,13 @@ class MetricsPlotter:
         # CORREÇÃO: Usando 'vazao_kbps'
         throughputs = [m['vazao_kbps'] for m in self.metrics_logger.metrics_data]
         bitrates = [m['bitrate_kbps'] for m in self.metrics_logger.metrics_data]
+        failovers = [m['segment'] for m in self.metrics_logger.metrics_data if m['failover_occurred']]
 
         fig, axes = plt.subplots(2, 1, figsize=(12, 10))
 
         # Subplot 1: Vazão
+        for seg in failovers:
+            axes[0].axvline(seg, linestyle=':', alpha=0.5)
         axes[0].plot(segments, throughputs, marker='o', linestyle='-',
                      linewidth=2, markersize=6, color='#2E86AB')
         axes[0].axhline(y=sum(throughputs)/len(throughputs), color='#A23B72',
@@ -140,6 +179,8 @@ class MetricsPlotter:
         axes[0].grid(True, alpha=0.3)
 
         # Subplot 2: Bitrate/Qualidade
+        for seg in failovers:
+            axes[1].axvline(seg, linestyle=':', alpha=0.5)
         axes[1].plot(segments, bitrates, marker='s', linestyle='-',
                      linewidth=2, markersize=6, color='#F18F01')
         axes[1].set_xlabel('Segmento', fontsize=11, fontweight='bold')
@@ -165,5 +206,6 @@ class MetricsPlotter:
         self.plot_throughput_over_time(save=True, show=False)
         self.plot_quality_over_time(save=True, show=False)
         self.plot_buffer_level_over_time(save=True, show=False)
+        self.plot_stall_metrics(save=True, show=False)
         self.plot_combined_metrics(save=True, show=False)
         print("Todos os gráficos foram gerados!\n")
