@@ -61,10 +61,10 @@
     \hfill
     \begin{minipage}[c]{0.7\textwidth}
         \centering
-        \textbf{\LARGE Universidade de Brasília}\\[0.25cm] 
+        \textbf{\LARGE Universidade de Brasília}\\[0.25cm]
         \textbf{\large Departamento de Ciência da Computação}\\[0.1cm]
     \end{minipage}
-    
+
     \begin{center}
         \vspace{4cm}
 
@@ -198,6 +198,26 @@ O resultado mostra que a Política 2 aumentou o bitrate médio de 340,00 kbps pa
 \end{figure}
 
 \section{Failover}
+
+\subsection{Detecção de Falhas}
+
+O cliente monitora falhas durante o download dos segmentos. Sempre que uma requisição HTTP gera uma exceção (\texttt{RequestException}), o segmento é considerado indisponível no servidor atual. Para fins de teste, também foram inseridas falhas forçadas em segmentos específicos, permitindo validar o comportamento do mecanismo de failover sob diferentes cenários.
+
+\subsection{Seleção do Servidor de Backup}
+
+A seleção do servidor de backup foi implementada na classe \texttt{ServerManager}. Os servidores são ordenados pela prioridade definida no manifest. Quando ocorre uma falha, o método \texttt{failover()} procura o próximo servidor disponível executando um \textit{health check} no endpoint \texttt{/health}. O primeiro servidor que responde corretamente é promovido a servidor ativo e passa a atender os downloads subsequentes.
+
+\subsection{Continuidade da Reprodução}
+
+Após a troca de servidor, o cliente reconstrói a URL do mesmo segmento e repete o download utilizando o novo servidor. Dessa forma, a recuperação ocorre de maneira transparente para a lógica de reprodução, sem perda do segmento solicitado.
+
+O tempo necessário para realizar a troca é medido pela métrica \texttt{failover\_time}, calculada entre o início do processo de failover e a conclusão do download bem-sucedido no servidor substituto.
+
+\subsection{Avaliação do Impacto no Buffer}
+
+Para avaliar o efeito do failover na experiência do usuário, foi registrada a variável \texttt{buffer\_absorbed\_failover}. Essa métrica indica se o nível de buffer disponível foi suficiente para absorver o atraso introduzido pela troca de servidor.
+
+Quando ocorre failover sem rebuffering, o evento é classificado como absorvido pelo buffer. Caso a troca provoque esgotamento do buffer e interrupção da reprodução, o failover é classificado como não absorvido. Essa distinção permite diferenciar falhas recuperadas de forma transparente daquelas que impactam diretamente a continuidade da reprodução.
 
 % -------------------------------------------------
 % CONCLUSÃO
