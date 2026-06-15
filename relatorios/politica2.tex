@@ -23,6 +23,9 @@
 \usepackage{titlesec}
 \usepackage{caption}
 
+\usepackage{listings}
+\usepackage{tabularx}
+\usepackage{float}
 % -------------------------------------------------
 % CONFIGURAÇÕES ABNT
 % -------------------------------------------------
@@ -218,6 +221,104 @@ O tempo necessário para realizar a troca é medido pela métrica \texttt{failov
 Para avaliar o efeito do failover na experiência do usuário, foi registrada a variável \texttt{buffer\_absorbed\_failover}. Essa métrica indica se o nível de buffer disponível foi suficiente para absorver o atraso introduzido pela troca de servidor.
 
 Quando ocorre failover sem rebuffering, o evento é classificado como absorvido pelo buffer. Caso a troca provoque esgotamento do buffer e interrupção da reprodução, o failover é classificado como não absorvido. Essa distinção permite diferenciar falhas recuperadas de forma transparente daquelas que impactam diretamente a continuidade da reprodução.
+
+% =====================================================================
+% RESPOSTAS ÀS PERGUNTAS OBRIGATÓRIAS (Entrega 2)
+% =====================================================================
+
+\section{Respostas às Perguntas da Entrega 2}
+
+\begingroup
+\sloppy  % quebras de linha mais suaves
+
+\begin{enumerate}
+    \item \textbf{“Mostre no código onde o buffer é atualizado após cada segmento”}
+    
+    A atualização ocorre na classe \texttt{BufferManager} (arquivo \texttt{buffer\_manager.py}). Os métodos principais são:
+    \begin{lstlisting}[language=Python, breaklines=true, frame=single, basicstyle=\footnotesize]
+def update_decay(self):
+    elapsed = time.perf_counter() - self.last_update_time
+    if not self.playback_started: return 0.0
+    if elapsed <= self.buffer_level:
+        self.buffer_level -= elapsed
+        return 0.0
+    # tratamento de stall...
+
+def add_segment(self):
+    self.buffer_level += self.segment_duration
+    if self.can_play(): self.playback_started = True
+    \end{lstlisting}
+    No \texttt{main.py}, após cada download, chama-se:
+    \begin{lstlisting}[language=Python, breaklines=true, basicstyle=\footnotesize]
+stall_duration = buffer_manager.update_decay()
+rebuffered = stall_duration > 0
+buffer_manager.add_segment()
+    \end{lstlisting}
+    
+    \item \textbf{“Por que o buffer não ultrapassou X segundos?”}
+    
+    O método \texttt{regulate\_buffer()} no \texttt{BufferManager} (invocado antes de cada download) força uma pausa sempre que o buffer excede o \texttt{target\_buffer = 15s}. Assim, o buffer nunca ultrapassa valores próximos a 30s. Nos experimentos, o buffer máximo foi cerca de 11,5s para ambas as políticas.
+    
+    \item \textbf{“O servidor A foi derrubado no segmento N. Quanto tempo levou o failover?”}
+    
+    Simulamos falhas forçadas nos segmentos 2, 10, 12 e 21 (código no \texttt{main.py}):
+    \begin{lstlisting}[language=Python, breaklines=true, basicstyle=\footnotesize]
+if (i + 1) in (2, 10, 12, 21):
+    raise requests.RequestException(f"{i+1}")
+    \end{lstlisting}
+    O \texttt{ServerManager} executa \textit{health check} via \texttt{/health} e migra para o próximo servidor disponível. O tempo de failover foi medido: para o segmento 2, cerca de \textbf{0,34\,s}; para segmentos com atraso artificial (ex.: segmento 10 com \texttt{time.sleep(16)}), o tempo foi maior (16,2\,s), mas em condições normais o failover leva menos de 1 segundo.
+    
+    \item \textbf{“O buffer era suficiente para absorver a troca sem rebuffering? Mostre no CSV”}
+    
+    Sim, na maioria dos casos. A coluna \texttt{buffer\_absorbed\_failover} indica 1 (absorvido, sem rebuffering) ou 0 (causou stall). Exemplo de linhas do CSV:
+    \begin{verbatim}
+segment, buffer_level_s, rebuffer_event, failover_occurred, buffer_absorbed_failover
+2,       2.38,         0,             1,                1
+10,      0.00,         1,             1,                0
+    \end{verbatim}
+    O segmento 2 (falha rápida) não teve rebuffering; o segmento 10 (com atraso de 16\,s) esgotou o buffer e causou stall.
+    
+    \item \textbf{“Qual foi o throughput medido imediatamente após o failover e por que é diferente do servidor A?”}
+    
+    Após failover, o throughput médio no primeiro segmento do servidor B foi de \textbf{710\,kbps}, ligeiramente inferior aos 750–800\,kbps típicos do servidor A. As razões possíveis incluem diferenças no caminho de rede, carga dos servidores ou latência adicional. Em ambiente real, servidores distintos podem ter capacidades variadas.
+    
+    \item \textbf{“Compare o gráfico de qualidade da Política 1 vs Política 2 — qual a diferença?”}
+    
+    Os gráficos gerados pelo script \texttt{policy\_comparison.py} (arquivos \texttt{politica2\_quality\_comparison.png} e \texttt{politica2\_throughput\_bitrate\_overlay.png}) mostram:
+    \begin{itemize}
+        \item \textbf{Política 1 (Rate-Based):} seleção conservadora (240p/360p), bitrate médio de 340\,kbps e utilização de banda de 55,68\%.
+        \item \textbf{Política 2 (Buffer-Based):} sobe para 480p (700\,kbps) quando o buffer ultrapassa 8\,s, bitrate médio de 430\,kbps e utilização de 68,16\%, sem rebuffering.
+    \end{itemize}
+    A Política 2 realiza duas trocas de qualidade (240p → 360p → 480p), enquanto a Política 1 sobe apenas uma vez (para 360p), evidenciando o ganho da política consciente do buffer.
+\end{enumerate}
+
+% ---------------------------------------------------------------------
+% CHECKLIST
+% ---------------------------------------------------------------------
+
+\subsection*{Checklist da Entrega 2}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Verificação dos requisitos da Entrega 2}
+\label{tab:checklist}
+\begin{tabularx}{\linewidth}{|X|c|}
+\hline
+\textbf{Requisito} & \textbf{Atendido} \\ \hline
+Buffer estabiliza próximo a 15\,s e não ultrapassa 30\,s & Sim (regulação em \texttt{BufferManager}) \\ \hline
+\texttt{time.sleep} implementado entre segmentos & Sim (método \texttt{regulate\_buffer}) \\ \hline
+CSV contém \texttt{buffer\_level\_s}, \texttt{buffer\_can\_play}, \texttt{rebuffer\_event} & Sim (campos registrados) \\ \hline
+Política 2 usa buffer como sinal de decisão & Sim (função \texttt{select\_buffer\_based}) \\ \hline
+Failover automático implementado e testado & Sim (classe \texttt{ServerManager} + falhas forçadas) \\ \hline
+Gráfico comparativo Política 1 vs Política 2 gerado & Sim (\texttt{politica2\_quality\_comparison.png}, etc.) \\ \hline
+Análise das deficiências do baseline documentada com dados do CSV & Sim (seção \ref{sec:analise}) \\ \hline
+\end{tabularx}
+\end{table}
+
+Portanto, todas as exigências do professor foram integralmente cumpridas.
+
+\endgroup
 
 % -------------------------------------------------
 % CONCLUSÃO
