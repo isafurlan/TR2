@@ -34,7 +34,7 @@ class MetricsLogger:
             'failover_total': failover_total,
             'failover_occurred': 1 if failover_occurred else 0,
             'failover_time': failover_time,
-            'buffer_absorbed_failover': 1 if buffer_absorbed_failover else 0,
+            'buffer_absorbed_failover': '' if buffer_absorbed_failover is None else int(buffer_absorbed_failover),
             'server_before': server_before,
             'server_after': server_after
         }

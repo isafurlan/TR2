@@ -107,7 +107,7 @@ def main():
     for i in range(10):
         failover_occurred = False
         failover_time = 0.0
-        buffer_absorbed_failover = True
+        buffer_absorbed_failover = None
         server_before = server_id
         server_after = server_id
 
@@ -168,9 +168,9 @@ def main():
             jitter_ewma = (alpha_ewma * jitter_network) + ((1 - alpha_ewma) * jitter_ewma)
 
         if rebuffered:
-            if failover_occurred:
-                buffer_absorbed_failover = False
             print(f"REBUFFERING detectado: {stall_duration:.2f}s")
+        if failover_occurred:
+            buffer_absorbed_failover = not rebuffered
 
         # Registro no Logger
         metrics_logger.log_segment(
