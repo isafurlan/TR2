@@ -153,13 +153,11 @@ def main():
         buffer_manager.add_segment()
 
         # Cálculo Jitter Network
-        current_time = time.perf_counter()
         if i == 0:
             jitter_network = 0.0
         else:
-            inter_arrival = current_time - last_segment_time
-            jitter_network = abs(inter_arrival - segment_duration) * 1000
-        last_segment_time = current_time
+            jitter_network = abs(download_time - previous_download_time) * 1000
+        previous_download_time = download_time
 
         # Cálculo Jitter EWMA
         if i == 0:
