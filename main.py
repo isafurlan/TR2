@@ -104,7 +104,7 @@ def main():
     alpha_ewma = 0.2
     failover_total = 0
 
-    for i in range(10):
+    for i in range(30):
         failover_occurred = False
         failover_time = 0.0
         buffer_absorbed_failover = None
@@ -125,12 +125,21 @@ def main():
         failover_start = None
 
         try:
+            #força failover
+            if (i + 1) in (2, 10, 12, 21):
+                raise requests.RequestException(f"{i+1}")
             throughput, download_time = download_segment(url_segmento)
 
-        except requests.RequestException:
+        except requests.RequestException as e:
             failover_occurred = True
             failover_start = time.perf_counter()
             new_server = server_manager.failover()
+
+            #força stall durante failover
+            if str(e) == "10":
+                time.sleep(16)
+            elif str(e) == "12":
+                time.sleep(5)
 
             if new_server is None:
                 raise Exception("Nenhum servidor disponível")
