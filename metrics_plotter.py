@@ -15,6 +15,20 @@ class MetricsPlotter:
         for plot_file in glob.glob(os.path.join(self.plots_dir, "*.png")):
             os.remove(plot_file)
 
+    def mark_failovers(self, ax=None):
+        failovers = [(int(m['segment']), 'green' if m['buffer_absorbed_failover'] == 1 else 'red')
+                     for m in self.metrics_logger.metrics_data if m['failover_occurred']]
+        added = set()
+        for seg, color in failovers:
+            legend = 'Failover (Absorvida pelo Buffer)' if color == 'green' else 'Failover (Causou Rebuffering)'
+            current_legend = None if legend in added else legend
+            added.add(legend)
+            if ax is None:
+                plt.axvline(seg, color=color, linestyle=':', linewidth=1.5, alpha=0.5, label=current_legend)
+            else:
+                ax.axvline(seg, color=color, linestyle=':', linewidth=1.5, alpha=0.5, label=current_legend)
+
+
     def plot_throughput_over_time(self, save=True, show=True):
         if not self.metrics_logger.metrics_data:
             print("Sem dados para plotar.")
@@ -22,12 +36,10 @@ class MetricsPlotter:
 
         segments = [m['segment'] for m in self.metrics_logger.metrics_data]
         throughputs = [m['vazao_kbps'] for m in self.metrics_logger.metrics_data]
-        failovers = [m['segment'] for m in self.metrics_logger.metrics_data if m['failover_occurred']]
 
         plt.figure(figsize=(10, 6))
 
-        for seg in failovers:
-            plt.axvline(seg, linestyle=':', alpha=0.5)
+        self.mark_failovers()
 
         plt.plot(segments, throughputs, marker='o', linestyle='-',
                  linewidth=2, markersize=6, color='#2E86AB')
@@ -97,6 +109,9 @@ class MetricsPlotter:
         buffer_levels = [m['buffer_level_s'] for m in self.metrics_logger.metrics_data]
 
         plt.figure(figsize=(10, 6))
+
+        self.mark_failovers()
+
         plt.plot(segments, buffer_levels, marker='^', linestyle='-',
                  linewidth=2, markersize=6, color='#C73E1D')
 
@@ -162,6 +177,7 @@ class MetricsPlotter:
             cumulative.append(total)
 
         plt.figure(figsize=(10, 6))
+        self.mark_failovers()
         plt.bar(segments, stalls, label='Stall por Segmento')
         plt.plot(segments, cumulative, marker='o', linewidth=2, label='Stall Acumulado')
         plt.xlabel('Segmento')
@@ -189,30 +205,26 @@ class MetricsPlotter:
         # CORREÇÃO: Usando 'vazao_kbps'
         throughputs = [m['vazao_kbps'] for m in self.metrics_logger.metrics_data]
         bitrates = [m['bitrate_kbps'] for m in self.metrics_logger.metrics_data]
-        failovers = [m['segment'] for m in self.metrics_logger.metrics_data if m['failover_occurred']]
 
         fig, axes = plt.subplots(2, 1, figsize=(12, 10))
 
         # Subplot 1: Vazão
-        for seg in failovers:
-            axes[0].axvline(seg, linestyle=':', alpha=0.5)
+        self.mark_failovers(axes[0])
         axes[0].plot(segments, throughputs, marker='o', linestyle='-',
-                     linewidth=2, markersize=6, color='#2E86AB')
+                     linewidth=2, markersize=6, color='#2E86AB', label='Vazão Medida')
         axes[0].axhline(y=sum(throughputs)/len(throughputs), color='#A23B72',
-                       linestyle='--', linewidth=2, alpha=0.7)
+                       linestyle='--', linewidth=2, alpha=0.7, label='Média')
         axes[0].set_ylabel('Vazão (kbps)', fontsize=11, fontweight='bold')
         axes[0].set_title('Métricas de Desempenho', fontsize=13, fontweight='bold')
-        axes[0].legend(['Vazão Medida', 'Média'], loc='best')
+        axes[0].legend(loc='best')
         axes[0].grid(True, alpha=0.3)
 
         # Subplot 2: Bitrate/Qualidade
-        for seg in failovers:
-            axes[1].axvline(seg, linestyle=':', alpha=0.5)
         axes[1].plot(segments, bitrates, marker='s', linestyle='-',
-                     linewidth=2, markersize=6, color='#F18F01')
+                     linewidth=2, markersize=6, color='#F18F01', label='Qualidade Selecionada')
         axes[1].set_xlabel('Segmento', fontsize=11, fontweight='bold')
         axes[1].set_ylabel('Bitrate (kbps)', fontsize=11, fontweight='bold')
-        axes[1].legend(['Qualidade Selecionada'], loc='best')
+        axes[1].legend(loc='best')
         axes[1].grid(True, alpha=0.3)
 
         plt.tight_layout()
