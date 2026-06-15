@@ -37,3 +37,6 @@ dist/
 
 # mypy
 .mypy_cache/
+
+# virtual environment
+/.venv
