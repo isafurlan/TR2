@@ -38,7 +38,7 @@ def average_throughput():
         return 0
     return sum(throughput_history) / len(throughput_history)
 
-def select_quality(representations, avg, safety_factor=0.85):
+def select_quality(representations, avg, safety_factor=0.9):
     safe = avg * safety_factor
     selected = representations[0]
     for rep in representations:
