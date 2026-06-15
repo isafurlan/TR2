@@ -16,8 +16,9 @@ class ServerManager:
             return False
 
     def failover(self):
-        for i in range(self.current_index + 1, len(self.servers)):
-            if self.health_check(self.servers[i]):
-                self.current_index = i
-                return self.servers[i]
+        for i in range(1, len(self.servers)):
+            next_index = (self.current_index + i) % len(self.servers)
+            if self.health_check(self.servers[next_index]):
+                self.current_index = next_index
+                return self.servers[next_index]
         return None
