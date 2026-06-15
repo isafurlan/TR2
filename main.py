@@ -113,6 +113,7 @@ def main():
 
         print(f"--- Segmento {i + 1} ---")
 
+        buffer_manager.regulate_buffer()
         can_play = buffer_manager.can_play()
         quality = select_quality(representations, average_throughput())
         buffer_before_download = buffer_manager.get_buffer_level()
@@ -146,7 +147,6 @@ def main():
             throughput, download_time = download_segment(url_segmento)
 
             failover_time = time.perf_counter() - failover_start
-            buffer_manager.update_decay()
 
         stall_duration = buffer_manager.update_decay()
         rebuffered = stall_duration > 0
