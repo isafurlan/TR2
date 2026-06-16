@@ -116,6 +116,7 @@
 % -------------------------------------------------
 
 \section{Análise de Deficiências}
+\label{sec:analise}
 
 \subsection{Evidências Coletadas}
 
@@ -233,7 +234,7 @@ Quando ocorre failover sem rebuffering, o evento é classificado como absorvido 
 
 \begin{enumerate}
     \item \textbf{“Mostre no código onde o buffer é atualizado após cada segmento”}
-    
+
     A atualização ocorre na classe \texttt{BufferManager} (arquivo \texttt{buffer\_manager.py}). Os métodos principais são:
     \begin{lstlisting}[language=Python, breaklines=true, frame=single, basicstyle=\footnotesize]
 def update_decay(self):
@@ -254,36 +255,38 @@ stall_duration = buffer_manager.update_decay()
 rebuffered = stall_duration > 0
 buffer_manager.add_segment()
     \end{lstlisting}
-    
+
     \item \textbf{“Por que o buffer não ultrapassou X segundos?”}
-    
+
     O método \texttt{regulate\_buffer()} no \texttt{BufferManager} (invocado antes de cada download) força uma pausa sempre que o buffer excede o \texttt{target\_buffer = 15s}. Assim, o buffer nunca ultrapassa valores próximos a 30s. Nos experimentos, o buffer máximo foi cerca de 11,5s para ambas as políticas.
-    
+
     \item \textbf{“O servidor A foi derrubado no segmento N. Quanto tempo levou o failover?”}
-    
+
     Simulamos falhas forçadas nos segmentos 2, 10, 12 e 21 (código no \texttt{main.py}):
     \begin{lstlisting}[language=Python, breaklines=true, basicstyle=\footnotesize]
 if (i + 1) in (2, 10, 12, 21):
     raise requests.RequestException(f"{i+1}")
     \end{lstlisting}
     O \texttt{ServerManager} executa \textit{health check} via \texttt{/health} e migra para o próximo servidor disponível. O tempo de failover foi medido: para o segmento 2, cerca de \textbf{0,34\,s}; para segmentos com atraso artificial (ex.: segmento 10 com \texttt{time.sleep(16)}), o tempo foi maior (16,2\,s), mas em condições normais o failover leva menos de 1 segundo.
-    
+
     \item \textbf{“O buffer era suficiente para absorver a troca sem rebuffering? Mostre no CSV”}
-    
+
     Sim, na maioria dos casos. A coluna \texttt{buffer\_absorbed\_failover} indica 1 (absorvido, sem rebuffering) ou 0 (causou stall). Exemplo de linhas do CSV:
+{\footnotesize
     \begin{verbatim}
-segment, buffer_level_s, rebuffer_event, failover_occurred, buffer_absorbed_failover
+segment, buffer_level_s, rebuffer_event, failover_occurred, buffer_abs[...]
 2,       2.38,         0,             1,                1
 10,      0.00,         1,             1,                0
     \end{verbatim}
+}
     O segmento 2 (falha rápida) não teve rebuffering; o segmento 10 (com atraso de 16\,s) esgotou o buffer e causou stall.
-    
+
     \item \textbf{“Qual foi o throughput medido imediatamente após o failover e por que é diferente do servidor A?”}
-    
-    Após failover, o throughput médio no primeiro segmento do servidor B foi de \textbf{710\,kbps}, ligeiramente inferior aos 750–800\,kbps típicos do servidor A. As razões possíveis incluem diferenças no caminho de rede, carga dos servidores ou latência adicional. Em ambiente real, servidores distintos podem ter capacidades variadas.
-    
+
+    Após failover, o throughput médio no primeiro segmento do servidor B foi de \textbf{710\,kbps}, ligeiramente inferior aos 750–800\,kbps do servidor A. As razões possíveis incluem diferenças no caminho de rede, carga dos servidores ou latência adicional. Em ambiente real, servidores distintos podem ter capacidades variadas.
+
     \item \textbf{“Compare o gráfico de qualidade da Política 1 vs Política 2 — qual a diferença?”}
-    
+
     Os gráficos gerados pelo script \texttt{policy\_comparison.py} (arquivos \texttt{politica2\_quality\_comparison.png} e \texttt{politica2\_throughput\_bitrate\_overlay.png}) mostram:
     \begin{itemize}
         \item \textbf{Política 1 (Rate-Based):} seleção conservadora (240p/360p), bitrate médio de 340\,kbps e utilização de banda de 55,68\%.
