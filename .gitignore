@@ -1,0 +1,42 @@
+# Virtual environment
+tr2-trab/
+.tr2-trab/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Build / distribution
+build/
+dist/
+*.egg-info/
+
+# Environment variables
+.env
+
+# Logs
+*.log
+
+# CSV outputs
+*.csv
+
+# PyCharm
+.idea/
+
+# macOS
+.DS_Store
+
+# Linux
+*~
+
+# Jupyter
+.ipynb_checkpoints/
+
+# pytest
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+
+# virtual environment
+/.venv
