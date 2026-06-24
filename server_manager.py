@@ -1,4 +1,6 @@
-import requests
+import urllib.request
+import urllib.error
+
 
 class ServerManager:
     def __init__(self, servers):
@@ -10,8 +12,9 @@ class ServerManager:
 
     def health_check(self, server):
         try:
-            r = requests.get(server["url"] + "/health", timeout=2)
-            return r.status_code == 200
+            url_saude = server["url"] + "/health"
+            with urllib.request.urlopen(url_saude, timeout=2) as r:
+                return r.status == 200
         except:
             return False
 

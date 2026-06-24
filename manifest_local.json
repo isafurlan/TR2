@@ -1,0 +1,52 @@
+{
+  "version": "2.0",
+  "segment_duration_s": 2,
+  "servers": [
+    {
+      "id": "A",
+      "url": "http://137.131.178.229:8080",
+      "priority": 1,
+      "bandwidth_kbps": 2000.0,
+      "jitter_ms": 0
+    },
+    {
+      "id": "srv-B",
+      "url": "http://137.131.178.229:8081",
+      "priority": 2,
+      "bandwidth_kbps": null,
+      "jitter_ms": null
+    }
+  ],
+  "representations": [
+    {
+      "quality": "240p",
+      "bitrate_kbps": 200,
+      "segment_bytes": 25000,
+      "url_path": "/segment/240p"
+    },
+    {
+      "quality": "360p",
+      "bitrate_kbps": 400,
+      "segment_bytes": 50000,
+      "url_path": "/segment/360p"
+    },
+    {
+      "quality": "480p",
+      "bitrate_kbps": 600,
+      "segment_bytes": 75000,
+      "url_path": "/segment/480p"
+    },
+    {
+      "quality": "720p",
+      "bitrate_kbps": 900,
+      "segment_bytes": 112500,
+      "url_path": "/segment/720p"
+    },
+    {
+      "quality": "1080p",
+      "bitrate_kbps": 1200,
+      "segment_bytes": 150000,
+      "url_path": "/segment/1080p"
+    }
+  ]
+}

@@ -3,9 +3,9 @@ import glob
 import os
 
 class MetricsPlotter:
-    def __init__(self, metrics_logger):
+    def __init__(self, metrics_logger, policy):
         self.metrics_logger = metrics_logger
-        self.plots_dir = "relatorios/plots"
+        self.plots_dir = f"relatorios/plots/politica{policy}"
 
         # Cria pasta para salvar os gráficos se não existir
         if not os.path.exists(self.plots_dir):
@@ -28,7 +28,6 @@ class MetricsPlotter:
             else:
                 ax.axvline(seg, color=color, linestyle=':', linewidth=1.5, alpha=0.5, label=current_legend)
 
-
     def plot_throughput_over_time(self, save=True, show=True):
         if not self.metrics_logger.metrics_data:
             print("Sem dados para plotar.")
@@ -47,7 +46,6 @@ class MetricsPlotter:
         avg_throughput = sum(throughputs) / len(throughputs)
         plt.axhline(y=avg_throughput, color='#A23B72', linestyle='--',
                     linewidth=2, label=f'Média: {avg_throughput:.2f} kbps')
-
         plt.xlabel('Segmento', fontsize=12, fontweight='bold')
         plt.ylabel('Vazão (kbps)', fontsize=12, fontweight='bold')
         plt.title('Vazão ao Longo dos Segmentos', fontsize=14, fontweight='bold')
@@ -118,7 +116,6 @@ class MetricsPlotter:
         min_buffer = 2.0
         plt.axhline(y=min_buffer, color='red', linestyle=':',
                     linewidth=2, label=f'Buffer mínimo ({min_buffer}s)')
-
         plt.xlabel('Segmento', fontsize=12, fontweight='bold')
         plt.ylabel('Nível do Buffer (segundos)', fontsize=12, fontweight='bold')
         plt.title('Nível do Buffer ao Longo do Tempo', fontsize=14, fontweight='bold')
